@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0e0e10">
+<title>Sunisalex · 导航</title>
+<style>
+  :root{
+    --bg-0:#0e0e10;
+    --bg-1:#16161a;
+    --bg-2:#1d1d22;
+    --line:rgba(255,255,255,.06);
+    --line-strong:rgba(255,255,255,.14);
+    --text-1:#f2f2f3;
+    --text-2:#a6a6ad;
+    --text-3:#6b6b73;
+    --shadow-soft:0 8px 32px rgba(0,0,0,.45);
+    --shadow-hard:0 20px 60px rgba(0,0,0,.6);
+    --r-lg:24px;
+    --r-md:14px;
+    --ease:cubic-bezier(.22,.61,.36,1);
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden}
+  body{
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #1f1f26 0%, transparent 60%),
+      radial-gradient(900px 500px at 90% 110%, #1a1a22 0%, transparent 55%),
+      var(--bg-0);
+    color:var(--text-1);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    letter-spacing:.01em;
+    user-select:none;
+    -webkit-user-select:none;
+  }
+
+  .app{
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    max-width:520px;
+    margin:0 auto;
+    padding:max(env(safe-area-inset-top),20px) 20px max(env(safe-area-inset-bottom),16px);
+    position:relative;
+  }
+
+  .brand{
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:6px 4px 18px;
+  }
+  .brand-name{
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:.12em;
+    color:var(--text-2);
+  }
+  .brand-name span{color:var(--text-1)}
+  .brand-time{
+    font-size:11px;
+    font-weight:500;
+    color:var(--text-3);
+    letter-spacing:.05em;
+    font-variant-numeric:tabular-nums;
+  }
+
+  .stage{
+    flex:1 1 auto;
+    position:relative;
+    min-height:0;
+    border-radius:var(--r-lg);
+    overflow:hidden;
+    background:var(--bg-1);
+    border:1px solid var(--line);
+    box-shadow:var(--shadow-hard);
+  }
+  .slides{position:absolute;inset:0}
+  .slide{
+    position:absolute;inset:0;
+    opacity:0;
+    transform:scale(1.04);
+    transition:opacity .55s var(--ease),transform .55s var(--ease);
+    pointer-events:none;
+    display:flex;
+    flex-direction:column;
+  }
+  /* 关键：非 active slide 内的所有子元素都不可点击，
+     防止隐藏 slide 的按钮叠在前面拦截点击 */
+  .slide:not(.active) *{pointer-events:none !important}
+  .slide.active{
+    opacity:1;
+    transform:scale(1);
+    pointer-events:auto;
+  }
+
+  .cover{
+    flex:1 1 auto;
+    position:relative;
+    overflow:hidden;
+    cursor:pointer;
+    transition:filter .4s var(--ease);
+  }
+  .cover:hover .cover-glyph{transform:translate(-50%,-50%) scale(1.04)}
+  .cover:active{filter:brightness(.92)}
+
+  .cover-noise{
+    position:absolute;inset:0;
+    pointer-events:none;
+    opacity:.4;
+    mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .35 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  .cover-orbit{
+    position:absolute;
+    right:-20%;top:-25%;
+    width:80%;aspect-ratio:1;
+    border-radius:50%;
+    border:1px solid rgba(255,255,255,.06);
+    pointer-events:none;
+  }
+  .cover-orbit::before,.cover-orbit::after{
+    content:"";position:absolute;inset:14%;border-radius:50%;
+    border:1px solid rgba(255,255,255,.05);
+  }
+  .cover-orbit::after{inset:30%;border-color:rgba(255,255,255,.04)}
+  .cover-grid{
+    position:absolute;inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+    background-size:32px 32px;
+    mask-image:radial-gradient(ellipse at 30% 70%,black 0%,transparent 70%);
+    -webkit-mask-image:radial-gradient(ellipse at 30% 70%,black 0%,transparent 70%);
+    pointer-events:none;
+  }
+  .cover-shine{
+    position:absolute;inset:0;
+    background:linear-gradient(135deg,rgba(255,255,255,.08) 0%,transparent 40%);
+    pointer-events:none;
+  }
+  .cover-vignette{
+    position:absolute;inset:0;
+    background:linear-gradient(180deg,transparent 50%,rgba(0,0,0,.6) 100%);
+    pointer-events:none;
+  }
+
+  .cover-glyph{
+    position:absolute;
+    left:50%;top:46%;
+    transform:translate(-50%,-50%);
+    width:38%;
+    aspect-ratio:1;
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .5s var(--ease);
+  }
+  .cover-glyph svg{
+    width:100%;height:100%;
+    stroke:rgba(255,255,255,.92);
+    fill:none;
+    stroke-width:1.4;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    filter:drop-shadow(0 8px 24px rgba(0,0,0,.5));
+  }
+  .cover-glyph::after{
+    content:"";
+    position:absolute;
+    inset:-30%;
+    background:radial-gradient(circle,rgba(255,255,255,.15) 0%,transparent 60%);
+    z-index:-1;
+    pointer-events:none;
+  }
+
+  .meta{
+    position:absolute;
+    left:0;right:0;bottom:0;
+    padding:20px 24px 22px;
+    z-index:2;
+    pointer-events:none;
+  }
+  .meta-tag{
+    display:inline-block;
+    font-size:9.5px;
+    letter-spacing:.2em;
+    color:rgba(255,255,255,.65);
+    padding:3px 9px;
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:999px;
+    margin-bottom:10px;
+    font-weight:500;
+    backdrop-filter:blur(8px);
+    background:rgba(0,0,0,.2);
+  }
+  .meta-title{
+    font-size:22px;
+    font-weight:600;
+    color:#fff;
+    letter-spacing:.01em;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .meta-domain{
+    font-size:11px;
+    color:rgba(255,255,255,.55);
+    margin-top:5px;
+    font-weight:400;
+    letter-spacing:.04em;
+    font-variant-numeric:tabular-nums;
+  }
+  .meta-desc{
+    font-size:13px;
+    color:rgba(255,255,255,.78);
+    margin-top:10px;
+    line-height:1.55;
+    max-width:92%;
+  }
+  .badge-soon{
+    font-size:9px;
+    letter-spacing:.15em;
+    padding:2px 7px;
+    border-radius:4px;
+    background:rgba(255,255,255,.14);
+    color:rgba(255,255,255,.7);
+    font-weight:500;
+  }
+
+  .open-btn{
+    position:absolute;
+    right:18px;top:18px;
+    z-index:3;
+    display:flex;align-items:center;gap:6px;
+    padding:8px 13px 8px 14px;
+    font-size:12px;
+    font-weight:500;
+    color:#0e0e10;
+    background:rgba(255,255,255,.92);
+    border:none;
+    border-radius:999px;
+    cursor:pointer;
+    backdrop-filter:blur(10px);
+    transition:transform .25s var(--ease),background .25s var(--ease),opacity .25s var(--ease);
+    pointer-events:auto;
+    font-family:inherit;
+  }
+  .open-btn:hover{background:#fff;transform:translateY(-1px)}
+  .open-btn:active{transform:translateY(0) scale(.96)}
+  .open-btn.is-loading{pointer-events:none;background:rgba(255,255,255,.7)}
+  .open-btn.is-disabled{opacity:.5;cursor:not-allowed;pointer-events:none}
+  .open-btn svg{width:12px;height:12px}
+  .open-btn .spin{
+    width:11px;height:11px;border:1.5px solid rgba(0,0,0,.2);
+    border-top-color:#0e0e10;border-radius:50%;
+    animation:spin .7s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .toast{
+    position:fixed;
+    left:50%;bottom:120px;
+    transform:translate(-50%,20px);
+    background:rgba(20,20,24,.92);
+    color:var(--text-1);
+    padding:10px 18px;
+    border-radius:999px;
+    font-size:12.5px;
+    border:1px solid var(--line-strong);
+    backdrop-filter:blur(12px);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .3s var(--ease),transform .3s var(--ease);
+    z-index:100;
+    white-space:nowrap;
+    max-width:90vw;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+
+  .dock{
+    flex:0 0 auto;
+    margin-top:14px;
+    padding:8px;
+    background:linear-gradient(180deg,rgba(30,30,36,.85),rgba(20,20,24,.85));
+    border:1px solid var(--line);
+    border-radius:20px;
+    backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:4px;
+    box-shadow:var(--shadow-soft);
+  }
+  .dock-item{
+    position:relative;
+    background:transparent;
+    border:none;
+    color:var(--text-3);
+    padding:10px 4px 9px;
+    border-radius:14px;
+    cursor:pointer;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:5px;
+    transition:color .3s var(--ease),background .3s var(--ease),transform .2s var(--ease);
+    font-family:inherit;
+  }
+  .dock-item:active{transform:scale(.94)}
+  .dock-item svg{
+    width:21px;height:21px;
+    stroke:currentColor;
+    fill:none;
+    stroke-width:1.6;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    transition:transform .35s var(--ease);
+  }
+  .dock-item-label{
+    font-size:10.5px;
+    font-weight:500;
+    letter-spacing:.02em;
+  }
+  .dock-item.active{
+    color:var(--text-1);
+    background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.04));
+  }
+  .dock-item.active svg{transform:translateY(-1px) scale(1.05)}
+  .dock-item:not(.active):hover{color:var(--text-2)}
+
+  /* token 状态指示点（极小，右上角） */
+  .dock-item .dot{
+    position:absolute;
+    top:8px;right:10px;
+    width:5px;height:5px;
+    border-radius:50%;
+    background:transparent;
+    transition:background .3s var(--ease);
+  }
+  .dock-item .dot.ready{background:#5cd07b;box-shadow:0 0 6px rgba(92,208,123,.6)}
+  .dock-item .dot.loading{background:#d4b75c;animation:pulse 1.2s ease-in-out infinite}
+  .dock-item .dot.error{background:#d05c5c}
+  @keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+
+  @media (max-height:640px){
+    .brand{padding:2px 4px 12px}
+    .meta{padding:16px 20px 18px}
+    .meta-title{font-size:19px}
+    .meta-desc{font-size:12px;margin-top:6px}
+    .cover-glyph{width:32%;top:42%}
+  }
+
+  /* 每站独立配色 */
+  .cover.t-axiom{
+    background:
+      radial-gradient(120% 80% at 80% 10%,#3a4a4f 0%,transparent 50%),
+      radial-gradient(100% 100% at 0% 100%,#0d1a1c 0%,transparent 60%),
+      linear-gradient(160deg,#1a2528 0%,#0c1416 100%);
+  }
+  .cover.t-re0{
+    background:
+      radial-gradient(120% 80% at 80% 10%,#4a3a3a 0%,transparent 50%),
+      radial-gradient(100% 100% at 0% 100%,#1a0d0d 0%,transparent 60%),
+      linear-gradient(160deg,#281a1a 0%,#160c0c 100%);
+  }
+  .cover.t-pic{
+    background:
+      radial-gradient(120% 80% at 80% 10%,#4f4a3a 0%,transparent 50%),
+      radial-gradient(100% 100% at 0% 100%,#1c180d 0%,transparent 60%),
+      linear-gradient(160deg,#28241a 0%,#16140c 100%);
+  }
+  .cover.t-fun{
+    background:
+      radial-gradient(120% 80% at 80% 10%,#3f3f48 0%,transparent 50%),
+      radial-gradient(100% 100% at 0% 100%,#15151c 0%,transparent 60%),
+      linear-gradient(160deg,#22222a 0%,#101015 100%);
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <div class="brand">
+    <div class="brand-name">sunisalex · <span>navigator</span></div>
+    <div class="brand-time" id="time"></div>
+  </div>
+
+  <div class="stage">
+    <div class="slides" id="slides"></div>
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <nav class="dock" id="dock"></nav>
+
+</div>
+
+<script>
+/* =========================================================
+ * 站点配置
+ *   sub   : 子域名前缀，用于：
+ *           - 拼 API URL: https://{sub}.sunisalex.org/api/url?subdomain={sub}
+ *           - 作为本地缓存 key
+ *           - 兜底跳转 https://{sub}.sunisalex.org
+ * ========================================================= */
+const SITES = [
+  {
+    key:'axiom',
+    theme:'t-axiom',
+    name:'Axiom Lab',
+    sub:'axiom',
+    tag:'LABORATORY',
+    desc:'公理实验室 · 数理化 / 刷机 / 编程 / AI',
+    glyph:`<svg viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="6" fill="rgba(255,255,255,.92)"/>
+      <ellipse cx="50" cy="50" rx="40" ry="16"/>
+      <ellipse cx="50" cy="50" rx="40" ry="16" transform="rotate(60 50 50)"/>
+      <ellipse cx="50" cy="50" rx="40" ry="16" transform="rotate(120 50 50)"/>
+    </svg>`,
+    icon:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><ellipse cx="12" cy="12" rx="10" ry="4"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(120 12 12)"/></svg>`
+  },
+  {
+    key:'re0',
+    theme:'t-re0',
+    name:'Re:0 Web',
+    sub:'re0-web',
+    tag:'FORK',
+    desc:'Re:0 Web 项目 fork',
+    glyph:`<svg viewBox="0 0 100 100">
+      <path d="M20 50a30 30 0 0 1 52-20"/>
+      <path d="M72 18v14h-14"/>
+      <path d="M80 50a30 30 0 0 1-52 20"/>
+      <path d="M28 82v-14h14"/>
+    </svg>`,
+    icon:`<svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3L20 5"/><path d="M20 5v4h-4"/><path d="M20 12a8 8 0 0 1-14 5.3L4 19"/><path d="M4 19v-4h4"/></svg>`
+  },
+  {
+    key:'pic',
+    theme:'t-pic',
+    name:'Picture',
+    sub:'picture',
+    tag:'GALLERY',
+    desc:'EdgeOne Pages 图库',
+    glyph:`<svg viewBox="0 0 100 100">
+      <rect x="15" y="20" width="70" height="60" rx="6"/>
+      <circle cx="35" cy="40" r="6"/>
+      <path d="M15 70l20-18 14 12 10-8 26 24"/>
+    </svg>`,
+    icon:`<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="M3 17l5-4 4 3 3-2 6 5"/></svg>`
+  },
+  {
+    key:'fun',
+    theme:'t-fun',
+    name:'Fun',
+    sub:'fun',
+    tag:'COMING SOON',
+    desc:'个人随笔 · 动漫 / 未来 / 游戏',
+    soon:true,
+    glyph:`<svg viewBox="0 0 100 100">
+      <path d="M50 15v70M15 50h70"/>
+      <path d="M30 30l40 40M70 30L30 70"/>
+      <circle cx="50" cy="50" r="6" fill="rgba(255,255,255,.92)"/>
+    </svg>`,
+    icon:`<svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/><path d="M6 6l12 12M18 6L6 18"/></svg>`
+  }
+];
+
+/* =========================================================
+ * Token 缓存与预加载
+ * ========================================================= */
+const CACHE_TTL_MS    = 1000 * 60 * 60 * 2.5;   // 浏览器侧缓存 2.5 小时（token 有效 3 小时）
+const CACHE_KEY_PREFIX = 'eo_token_v1:';
+const FETCH_TIMEOUT_MS = 5000;
+
+// 内存中的 token 池：sub -> { token, timestamp, domain, cachedAt, status }
+const tokenPool = {};
+
+function cacheKey(sub){ return CACHE_KEY_PREFIX + sub; }
+
+function loadFromLocal(sub){
+  try{
+    const raw = localStorage.getItem(cacheKey(sub));
+    if(!raw) return null;
+    const data = JSON.parse(raw);
+    if(!data || !data.token || !data.cachedAt) return null;
+    if(Date.now() - data.cachedAt > CACHE_TTL_MS) return null;  // 过期
+    return data;
+  } catch(e){ return null; }
+}
+
+function saveToLocal(sub,data){
+  try{ localStorage.setItem(cacheKey(sub),JSON.stringify(data)); } catch(e){}
+}
+
+async function fetchToken(site){
+  // 每个站点请求自己的 API：https://{sub}.sunisalex.org/api/url?subdomain={sub}
+  const apiUrl = `https://${site.sub}.sunisalex.org/api/url?subdomain=${encodeURIComponent(site.sub)}`;
+  const ctrl = new AbortController();
+  const tid  = setTimeout(()=>ctrl.abort(),FETCH_TIMEOUT_MS);
+  try{
+    const res = await fetch(apiUrl,{signal:ctrl.signal});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    if(!data.token || !data.domain) throw new Error('响应字段缺失');
+    return {
+      token:     data.token,
+      timestamp: data.timestamp,
+      domain:    data.domain,
+      cachedAt:  Date.now()
+    };
+  } finally { clearTimeout(tid); }
+}
+
+/* 加载某站 token（优先本地缓存）；返回 Promise，并维护 tokenPool 状态用于 UI 反馈 */
+async function loadSiteToken(site){
+  if(site.soon) return null;
+
+  // 1. 先看本地缓存
+  const cached = loadFromLocal(site.sub);
+  if(cached){
+    tokenPool[site.sub] = {...cached,status:'ready'};
+    updateDotForSub(site.sub,'ready');
+    return cached;
+  }
+
+  // 2. 标记 loading
+  tokenPool[site.sub] = {status:'loading'};
+  updateDotForSub(site.sub,'loading');
+
+  // 3. 远程拉
+  try{
+    const data = await fetchToken(site);
+    saveToLocal(site.sub,data);
+    tokenPool[site.sub] = {...data,status:'ready'};
+    updateDotForSub(site.sub,'ready');
+    return data;
+  } catch(err){
+    console.warn('[token] '+site.sub+':',err.message);
+    tokenPool[site.sub] = {status:'error',error:err.message};
+    updateDotForSub(site.sub,'error');
+    return null;
+  }
+}
+
+/* 页面打开时并发预加载所有非 soon 站点的 token */
+function preloadAllTokens(){
+  SITES.forEach(site=>{
+    if(site.soon) return;
+    loadSiteToken(site);  // fire & forget
+  });
+}
+
+/* =========================================================
+ * UI 渲染
+ * ========================================================= */
+const slidesEl = document.getElementById('slides');
+const dockEl   = document.getElementById('dock');
+const toastEl  = document.getElementById('toast');
+
+let currentIdx = 0;
+let toastTimer = null;
+
+SITES.forEach((s,i)=>{
+  // slide
+  const slide = document.createElement('div');
+  slide.className = 'slide' + (i===0?' active':'');
+  slide.dataset.idx = i;
+
+  const cover = document.createElement('div');
+  cover.className = 'cover ' + s.theme;
+  cover.innerHTML = `
+    <div class="cover-grid"></div>
+    <div class="cover-orbit"></div>
+    <div class="cover-shine"></div>
+    <div class="cover-glyph">${s.glyph}</div>
+    <div class="cover-noise"></div>
+    <div class="cover-vignette"></div>
+  `;
+
+  const btn = document.createElement('button');
+  btn.className = 'open-btn' + (s.soon?' is-disabled':'');
+  btn.innerHTML = s.soon
+    ? `即将上线`
+    : `打开 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>`;
+  if(!s.soon){
+    btn.addEventListener('click',e=>{e.stopPropagation();openSite(s,btn)});
+    cover.addEventListener('click',()=>openSite(s,btn));
+  }
+
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  meta.innerHTML = `
+    <div class="meta-tag">${s.tag}</div>
+    <div class="meta-title">${s.name}${s.soon?'<span class="badge-soon">SOON</span>':''}</div>
+    <div class="meta-domain">${s.sub}.sunisalex.org</div>
+    <div class="meta-desc">${s.desc}</div>
+  `;
+
+  slide.appendChild(cover);
+  slide.appendChild(btn);
+  slide.appendChild(meta);
+  slidesEl.appendChild(slide);
+
+  // dock
+  const b = document.createElement('button');
+  b.className = 'dock-item' + (i===0?' active':'');
+  b.dataset.idx = i;
+  b.dataset.sub = s.sub;
+  b.innerHTML = `
+    ${s.icon}
+    <span class="dock-item-label">${s.name}</span>
+    <span class="dot"></span>
+  `;
+  b.addEventListener('click',()=>switchTo(i));
+  dockEl.appendChild(b);
+});
+
+function updateDotForSub(sub,status){
+  const item = dockEl.querySelector(`.dock-item[data-sub="${sub}"]`);
+  if(!item) return;
+  const dot = item.querySelector('.dot');
+  dot.classList.remove('ready','loading','error');
+  if(status) dot.classList.add(status);
+}
+
+function switchTo(idx){
+  if(idx===currentIdx) return;
+  document.querySelectorAll('.slide').forEach((el,i)=>el.classList.toggle('active',i===idx));
+  document.querySelectorAll('.dock-item').forEach((el,i)=>el.classList.toggle('active',i===idx));
+  currentIdx = idx;
+}
+
+/* =========================================================
+ * 打开站点：优先用预加载好的 token；没有就当场拉
+ * ========================================================= */
+async function openSite(site,btn){
+  if(site.soon){ toast('该站点尚未上线'); return; }
+
+  const fallbackUrl = `https://${site.sub}.sunisalex.org`;
+  const pooled = tokenPool[site.sub];
+
+  // 情况 1：缓存就绪，直接拼 URL 并打开
+  if(pooled && pooled.status==='ready' && pooled.token){
+    const u = buildTokenUrl(pooled);
+    window.open(u,'_blank','noopener,noreferrer');
+    return;
+  }
+
+  // 情况 2：正在加载 or 失败 or 没有，当场重新拉一次
+  btn.classList.add('is-loading');
+  const originalHTML = btn.innerHTML;
+  btn.innerHTML = `<span class="spin"></span> 获取中`;
+
+  try{
+    const data = await loadSiteToken(site);
+    if(!data) throw new Error('token 获取失败');
+    const u = buildTokenUrl(data);
+    window.open(u,'_blank','noopener,noreferrer');
+  } catch(err){
+    console.warn('[open]',err);
+    window.open(fallbackUrl,'_blank','noopener,noreferrer');
+    toast('token 获取失败，已用海外域名打开');
+  } finally {
+    btn.classList.remove('is-loading');
+    btn.innerHTML = originalHTML;
+  }
+}
+
+function buildTokenUrl({token,timestamp,domain}){
+  const u = new URL('https://'+domain);
+  u.searchParams.set('eo_token',token);
+  u.searchParams.set('eo_time', timestamp);
+  return u.toString();
+}
+
+/* =========================================================
+ * 周边
+ * ========================================================= */
+function toast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>toastEl.classList.remove('show'),2200);
+}
+
+function tick(){
+  const d = new Date();
+  const p = n => String(n).padStart(2,'0');
+  document.getElementById('time').textContent = `${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+tick(); setInterval(tick,30000);
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight') switchTo((currentIdx+1)%SITES.length);
+  if(e.key==='ArrowLeft')  switchTo((currentIdx-1+SITES.length)%SITES.length);
+});
+
+let touchX=null;
+document.querySelector('.stage').addEventListener('touchstart',e=>{touchX=e.touches[0].clientX},{passive:true});
+document.querySelector('.stage').addEventListener('touchend',e=>{
+  if(touchX===null) return;
+  const dx = e.changedTouches[0].clientX - touchX;
+  if(Math.abs(dx)>50){
+    if(dx<0) switchTo((currentIdx+1)%SITES.length);
+    else     switchTo((currentIdx-1+SITES.length)%SITES.length);
+  }
+  touchX=null;
+},{passive:true});
+
+/* 页面打开立刻预加载所有 token */
+preloadAllTokens();
+
+/* 标签页重新可见时（用户切回来），若 token 过期则自动刷新 */
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='visible') return;
+  SITES.forEach(site=>{
+    if(site.soon) return;
+    const pooled = tokenPool[site.sub];
+    // 内存里没有，或缓存已过期 → 重拉
+    if(!pooled || pooled.status==='error' || (pooled.cachedAt && Date.now()-pooled.cachedAt > CACHE_TTL_MS)){
+      loadSiteToken(site);
+    }
+  });
+});
+</script>
+
+</body>
+</html>
