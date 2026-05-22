@@ -471,23 +471,42 @@ const SITES = [
 
 /* =========================================================
  * Token 缓存与预加载
+ *
+ * 重要：EO token 的有效期从 API 返回的 timestamp（秒级 unix 时间）开始算，
+ *      官方文档为 3 小时。我们以 token 自身 timestamp 为基准判断过期，
+ *      而不是本地"拿到 token 的时刻"——后者会被多层缓存（CF/EO KV/CDN）
+ *      误导，导致本地误以为 token 还很新鲜，实际已临近过期。
+ *
+ *      本地侧再留 1 小时安全余量（视为 2 小时过期），避免临界点跳转后立即 401。
  * ========================================================= */
-const CACHE_TTL_MS    = 1000 * 60 * 60 * 2.5;   // 浏览器侧缓存 2.5 小时（token 有效 3 小时）
-const CACHE_KEY_PREFIX = 'eo_token_v1:';
-const FETCH_TIMEOUT_MS = 5000;
+const TOKEN_LIFETIME_MS = 1000 * 60 * 60 * 3;   // EO token 实际有效期 3h
+const TOKEN_SAFETY_MS   = 1000 * 60 * 60 * 1;   // 安全余量 1h（本地视为 2h 过期）
+const CACHE_KEY_PREFIX  = 'eo_token_v2:';        // 版本号 +1，废弃旧版本缓存
+const FETCH_TIMEOUT_MS  = 5000;
 
-// 内存中的 token 池：sub -> { token, timestamp, domain, cachedAt, status }
+// 内存中的 token 池：sub -> { token, timestamp, domain, status }
 const tokenPool = {};
 
 function cacheKey(sub){ return CACHE_KEY_PREFIX + sub; }
+
+/* token 是否过期：以 API 返回的 timestamp（秒）为基准 */
+function isExpired(timestamp){
+  if(!timestamp) return true;
+  const ageMs = Date.now() - (timestamp * 1000);
+  return ageMs > (TOKEN_LIFETIME_MS - TOKEN_SAFETY_MS);
+}
 
 function loadFromLocal(sub){
   try{
     const raw = localStorage.getItem(cacheKey(sub));
     if(!raw) return null;
     const data = JSON.parse(raw);
-    if(!data || !data.token || !data.cachedAt) return null;
-    if(Date.now() - data.cachedAt > CACHE_TTL_MS) return null;  // 过期
+    if(!data || !data.token || !data.timestamp) return null;
+    if(isExpired(data.timestamp)){
+      // 顺手清理过期项
+      localStorage.removeItem(cacheKey(sub));
+      return null;
+    }
     return data;
   } catch(e){ return null; }
 }
@@ -502,16 +521,17 @@ async function fetchToken(site){
   const ctrl = new AbortController();
   const tid  = setTimeout(()=>ctrl.abort(),FETCH_TIMEOUT_MS);
   try{
-    const res = await fetch(apiUrl,{signal:ctrl.signal});
+    const res = await fetch(apiUrl,{signal:ctrl.signal,cache:'no-store'});
     if(!res.ok) throw new Error('HTTP '+res.status);
     const data = await res.json();
     if(data.error) throw new Error(data.error);
-    if(!data.token || !data.domain) throw new Error('响应字段缺失');
+    if(!data.token || !data.domain || !data.timestamp) throw new Error('响应字段缺失');
+    // 防御：即使 API 返回了，也可能是命中了远端 KV 的旧 token，再核一次有效期
+    if(isExpired(data.timestamp)) throw new Error('API 返回的 token 已临近过期');
     return {
       token:     data.token,
       timestamp: data.timestamp,
-      domain:    data.domain,
-      cachedAt:  Date.now()
+      domain:    data.domain
     };
   } finally { clearTimeout(tid); }
 }
@@ -644,17 +664,23 @@ async function openSite(site,btn){
   const fallbackUrl = `https://${site.sub}.sunisalex.org`;
   const pooled = tokenPool[site.sub];
 
-  // 情况 1：缓存就绪，直接拼 URL 并打开
-  if(pooled && pooled.status==='ready' && pooled.token){
+  // 情况 1：缓存就绪 且 未过期，直接拼 URL 并打开
+  if(pooled && pooled.status==='ready' && pooled.token && !isExpired(pooled.timestamp)){
     const u = buildTokenUrl(pooled);
     window.open(u,'_blank','noopener,noreferrer');
     return;
   }
 
-  // 情况 2：正在加载 or 失败 or 没有，当场重新拉一次
+  // 情况 2：没有 / 加载中 / 失败 / 已过期 → 当场重新拉一次
   btn.classList.add('is-loading');
   const originalHTML = btn.innerHTML;
   btn.innerHTML = `<span class="spin"></span> 获取中`;
+
+  // 强制走远程：先清掉内存和本地的过期 token
+  if(pooled && pooled.timestamp && isExpired(pooled.timestamp)){
+    delete tokenPool[site.sub];
+    try{ localStorage.removeItem(cacheKey(site.sub)); } catch(e){}
+  }
 
   try{
     const data = await loadSiteToken(site);
@@ -721,8 +747,8 @@ document.addEventListener('visibilitychange',()=>{
   SITES.forEach(site=>{
     if(site.soon) return;
     const pooled = tokenPool[site.sub];
-    // 内存里没有，或缓存已过期 → 重拉
-    if(!pooled || pooled.status==='error' || (pooled.cachedAt && Date.now()-pooled.cachedAt > CACHE_TTL_MS)){
+    // 内存里没有 / 上次失败 / token 自身已临近过期 → 重拉
+    if(!pooled || pooled.status==='error' || isExpired(pooled.timestamp)){
       loadSiteToken(site);
     }
   });
