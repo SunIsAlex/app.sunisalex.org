@@ -1,1118 +1,758 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>提灯人 · 文字冒险</title>
-<meta name="description" content="在黑暗中点亮一盏提灯——一个由 AI 即兴讲述的中文文字冒险，每一个选择都通向不同的结局。" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link
-  href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Noto+Serif+SC:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
-  rel="stylesheet"
-/>
-<!-- LZ-String for compressing story state into shareable URL fragments.
-     Pinned version + SRI hash. -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"
-        integrity="sha512-qtX0GLM3qX8rxJN1gyDfcnMFFrKvixfoEOwbBib9VafR5vbChV5LeE5wSI/x+IlCkTY5ZFddFDCCfaVJJNnuKQ=="
-        crossorigin="anonymous"
-        referrerpolicy="no-referrer"></script>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0e0e10">
+<title>Sunisalex · 导航</title>
 <style>
-  :root {
-    --ink:          #0e0b08;
-    --ink-2:        #161210;
-    --ink-3:        #1f1916;
-    --vellum:       #ece2cc;
-    --vellum-dim:   #b9ad94;
-    --vellum-muted: #786a55;
-    --ember:        #d8923a;
-    --ember-bright: #f3b35a;
-    --blood:        #8a3a2a;
-    --rule:         #3a2f24;
-    --shadow:       0 30px 80px -20px rgba(0,0,0,.7), 0 4px 12px rgba(0,0,0,.35);
+  :root{
+    --bg-0:#0e0e10;
+    --bg-1:#16161a;
+    --bg-2:#1d1d22;
+    --line:rgba(255,255,255,.06);
+    --line-strong:rgba(255,255,255,.14);
+    --text-1:#f2f2f3;
+    --text-2:#a6a6ad;
+    --text-3:#6b6b73;
+    --shadow-soft:0 8px 32px rgba(0,0,0,.45);
+    --shadow-hard:0 20px 60px rgba(0,0,0,.6);
+    --r-lg:24px;
+    --r-md:14px;
+    --ease:cubic-bezier(.22,.61,.36,1);
   }
 
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
-
-  body {
-    min-height: 100vh;
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden}
+  body{
     background:
-      radial-gradient(ellipse at 30% 0%, #2a1f17 0%, var(--ink) 55%) no-repeat,
-      var(--ink);
-    color: var(--vellum);
-    font-family: 'Noto Serif SC', 'Cormorant Garamond', Georgia, serif;
-    font-size: 17px;
-    line-height: 1.85;
-    overflow-x: hidden;
+      radial-gradient(1200px 600px at 50% -10%, #1f1f26 0%, transparent 60%),
+      radial-gradient(900px 500px at 90% 110%, #1a1a22 0%, transparent 55%),
+      var(--bg-0);
+    color:var(--text-1);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    letter-spacing:.01em;
+    user-select:none;
+    -webkit-user-select:none;
   }
 
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    pointer-events: none;
+  .app{
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    max-width:520px;
+    margin:0 auto;
+    padding:max(env(safe-area-inset-top),20px) 20px max(env(safe-area-inset-bottom),16px);
+    position:relative;
+  }
+
+  .brand{
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:6px 4px 18px;
+  }
+  .brand-name{
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:.12em;
+    color:var(--text-2);
+  }
+  .brand-name span{color:var(--text-1)}
+  .brand-time{
+    font-size:11px;
+    font-weight:500;
+    color:var(--text-3);
+    letter-spacing:.05em;
+    font-variant-numeric:tabular-nums;
+  }
+
+  .stage{
+    flex:1 1 auto;
+    position:relative;
+    min-height:0;
+    border-radius:var(--r-lg);
+    overflow:hidden;
+    background:var(--bg-1);
+    border:1px solid var(--line);
+    box-shadow:var(--shadow-hard);
+  }
+  .slides{position:absolute;inset:0}
+  .slide{
+    position:absolute;inset:0;
+    opacity:0;
+    transform:scale(1.04);
+    transition:opacity .55s var(--ease),transform .55s var(--ease);
+    pointer-events:none;
+    display:flex;
+    flex-direction:column;
+  }
+  /* 关键：非 active slide 内的所有子元素都不可点击，
+     防止隐藏 slide 的按钮叠在前面拦截点击 */
+  .slide:not(.active) *{pointer-events:none !important}
+  .slide.active{
+    opacity:1;
+    transform:scale(1);
+    pointer-events:auto;
+  }
+
+  .cover{
+    flex:1 1 auto;
+    position:relative;
+    overflow:hidden;
+    cursor:pointer;
+    transition:filter .4s var(--ease);
+  }
+  .cover:hover .cover-glyph{transform:translate(-50%,-50%) scale(1.04)}
+  .cover:active{filter:brightness(.92)}
+
+  .cover-noise{
+    position:absolute;inset:0;
+    pointer-events:none;
+    opacity:.4;
+    mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .35 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  .cover-orbit{
+    position:absolute;
+    right:-20%;top:-25%;
+    width:80%;aspect-ratio:1;
+    border-radius:50%;
+    border:1px solid rgba(255,255,255,.06);
+    pointer-events:none;
+  }
+  .cover-orbit::before,.cover-orbit::after{
+    content:"";position:absolute;inset:14%;border-radius:50%;
+    border:1px solid rgba(255,255,255,.05);
+  }
+  .cover-orbit::after{inset:30%;border-color:rgba(255,255,255,.04)}
+  .cover-grid{
+    position:absolute;inset:0;
     background-image:
-      radial-gradient(circle at 1px 1px, rgba(236,226,204,.04) 1px, transparent 0);
-    background-size: 3px 3px;
-    z-index: 1;
-    mix-blend-mode: overlay;
+      linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+    background-size:32px 32px;
+    mask-image:radial-gradient(ellipse at 30% 70%,black 0%,transparent 70%);
+    -webkit-mask-image:radial-gradient(ellipse at 30% 70%,black 0%,transparent 70%);
+    pointer-events:none;
   }
-  body::after {
-    content: '';
-    position: fixed; inset: 0;
-    pointer-events: none;
-    box-shadow: inset 0 0 200px 40px rgba(0,0,0,.65);
-    z-index: 2;
+  .cover-shine{
+    position:absolute;inset:0;
+    background:linear-gradient(135deg,rgba(255,255,255,.08) 0%,transparent 40%);
+    pointer-events:none;
   }
-
-  .stage {
-    position: relative;
-    z-index: 3;
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 56px 28px 120px;
+  .cover-vignette{
+    position:absolute;inset:0;
+    background:linear-gradient(180deg,transparent 50%,rgba(0,0,0,.6) 100%);
+    pointer-events:none;
   }
 
-  /* ---------- Header ---------- */
-  header.masthead {
-    text-align: center;
-    margin-bottom: 56px;
-    position: relative;
+  .cover-glyph{
+    position:absolute;
+    left:50%;top:46%;
+    transform:translate(-50%,-50%);
+    width:38%;
+    aspect-ratio:1;
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .5s var(--ease);
   }
-  .ornament {
-    display: flex; align-items: center; justify-content: center; gap: 14px;
-    color: var(--ember);
-    font-family: 'Cormorant Garamond', serif;
-    font-style: italic;
-    letter-spacing: .25em;
-    text-transform: uppercase;
-    font-size: 11px;
-    opacity: .85;
+  .cover-glyph svg{
+    width:100%;height:100%;
+    stroke:rgba(255,255,255,.92);
+    fill:none;
+    stroke-width:1.4;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    filter:drop-shadow(0 8px 24px rgba(0,0,0,.5));
   }
-  .ornament::before, .ornament::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--rule), transparent);
-    max-width: 90px;
-  }
-  h1.title {
-    font-family: 'Cormorant Garamond', serif;
-    font-weight: 500;
-    font-size: clamp(46px, 8vw, 72px);
-    line-height: 1;
-    margin: 18px 0 4px;
-    color: var(--vellum);
-    letter-spacing: -.01em;
-  }
-  h1.title .amp {
-    font-style: italic;
-    color: var(--ember);
-    font-weight: 400;
-  }
-  .tagline {
-    font-family: 'Cormorant Garamond', serif;
-    font-style: italic;
-    font-size: 17px;
-    color: var(--vellum-dim);
-    margin: 0;
+  .cover-glyph::after{
+    content:"";
+    position:absolute;
+    inset:-30%;
+    background:radial-gradient(circle,rgba(255,255,255,.15) 0%,transparent 60%);
+    z-index:-1;
+    pointer-events:none;
   }
 
-  /* ---------- Panels ---------- */
-  .panel {
-    background: linear-gradient(180deg, var(--ink-3), var(--ink-2));
-    border: 1px solid var(--rule);
-    border-radius: 2px;
-    padding: 28px 26px 30px;
-    margin-bottom: 28px;
-    box-shadow: var(--shadow);
-    position: relative;
+  .meta{
+    position:absolute;
+    left:0;right:0;bottom:0;
+    padding:20px 24px 22px;
+    z-index:2;
+    pointer-events:none;
   }
-  .panel::before {
-    content: '';
-    position: absolute; inset: 4px;
-    border: 1px solid rgba(216,146,58,.18);
-    border-radius: 1px;
-    pointer-events: none;
+  .meta-tag{
+    display:inline-block;
+    font-size:9.5px;
+    letter-spacing:.2em;
+    color:rgba(255,255,255,.65);
+    padding:3px 9px;
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:999px;
+    margin-bottom:10px;
+    font-weight:500;
+    backdrop-filter:blur(8px);
+    background:rgba(0,0,0,.2);
   }
-  .panel h2 {
-    font-family: 'Cormorant Garamond', serif;
-    font-weight: 500;
-    font-size: 22px;
-    margin: 0 0 6px;
-    color: var(--ember-bright);
-    letter-spacing: .02em;
+  .meta-title{
+    font-size:22px;
+    font-weight:600;
+    color:#fff;
+    letter-spacing:.01em;
+    display:flex;
+    align-items:center;
+    gap:8px;
   }
-  .panel p.hint {
-    margin: 0 0 18px;
-    color: var(--vellum-muted);
-    font-size: 14px;
-    line-height: 1.6;
+  .meta-domain{
+    font-size:11px;
+    color:rgba(255,255,255,.55);
+    margin-top:5px;
+    font-weight:400;
+    letter-spacing:.04em;
+    font-variant-numeric:tabular-nums;
   }
-  .field { margin-bottom: 14px; }
-  label.field-label {
-    display: block;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    letter-spacing: .28em;
-    text-transform: uppercase;
-    color: var(--vellum-muted);
-    margin-bottom: 6px;
-  }
-  input.text, textarea.text {
-    width: 100%;
-    background: var(--ink);
-    border: 1px solid var(--rule);
-    color: var(--vellum);
-    font-family: 'Noto Serif SC', serif;
-    font-size: 15px;
-    padding: 11px 13px;
-    border-radius: 2px;
-    outline: none;
-    transition: border-color .2s, box-shadow .2s;
-    resize: vertical;
-  }
-  input.text:focus, textarea.text:focus {
-    border-color: var(--ember);
-    box-shadow: 0 0 0 1px rgba(216,146,58,.3);
+  .meta-desc{
+    font-size:13px;
+    color:rgba(255,255,255,.78);
+    margin-top:10px;
+    line-height:1.55;
+    max-width:92%;
   }
 
-  .genre-chips {
-    display: flex; flex-wrap: wrap; gap: 8px;
-    margin-top: 4px;
+  .open-btn{
+    position:absolute;
+    right:18px;top:18px;
+    z-index:3;
+    display:flex;align-items:center;gap:6px;
+    padding:8px 13px 8px 14px;
+    font-size:12px;
+    font-weight:500;
+    color:#0e0e10;
+    background:rgba(255,255,255,.92);
+    border:none;
+    border-radius:999px;
+    cursor:pointer;
+    backdrop-filter:blur(10px);
+    transition:transform .25s var(--ease),background .25s var(--ease),opacity .25s var(--ease);
+    pointer-events:auto;
+    font-family:inherit;
   }
-  .chip {
-    background: transparent;
-    border: 1px solid var(--rule);
-    color: var(--vellum-dim);
-    font-family: 'Noto Serif SC', serif;
-    font-size: 13px;
-    padding: 6px 12px;
-    border-radius: 999px;
-    cursor: pointer;
-    transition: all .15s;
+  .open-btn:hover{background:#fff;transform:translateY(-1px)}
+  .open-btn:active{transform:translateY(0) scale(.96)}
+  .open-btn.is-loading{pointer-events:none;background:rgba(255,255,255,.7)}
+  .open-btn svg{width:12px;height:12px}
+  .open-btn .spin{
+    width:11px;height:11px;border:1.5px solid rgba(0,0,0,.2);
+    border-top-color:#0e0e10;border-radius:50%;
+    animation:spin .7s linear infinite;
   }
-  .chip:hover { color: var(--vellum); border-color: var(--vellum-muted); }
-  .chip.on {
-    color: var(--ember-bright);
-    border-color: var(--ember);
-    background: rgba(216,146,58,.08);
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .toast{
+    position:fixed;
+    left:50%;bottom:120px;
+    transform:translate(-50%,20px);
+    background:rgba(20,20,24,.92);
+    color:var(--text-1);
+    padding:10px 18px;
+    border-radius:999px;
+    font-size:12.5px;
+    border:1px solid var(--line-strong);
+    backdrop-filter:blur(12px);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .3s var(--ease),transform .3s var(--ease);
+    z-index:100;
+    white-space:nowrap;
+    max-width:90vw;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+
+  .dock{
+    flex:0 0 auto;
+    margin-top:14px;
+    padding:8px;
+    background:linear-gradient(180deg,rgba(30,30,36,.85),rgba(20,20,24,.85));
+    border:1px solid var(--line);
+    border-radius:20px;
+    backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:4px;
+    box-shadow:var(--shadow-soft);
+  }
+  .dock-item{
+    position:relative;
+    background:transparent;
+    border:none;
+    color:var(--text-3);
+    padding:10px 4px 9px;
+    border-radius:14px;
+    cursor:pointer;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:5px;
+    transition:color .3s var(--ease),background .3s var(--ease),transform .2s var(--ease);
+    font-family:inherit;
+  }
+  .dock-item:active{transform:scale(.94)}
+  .dock-item svg{
+    width:21px;height:21px;
+    stroke:currentColor;
+    fill:none;
+    stroke-width:1.6;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    transition:transform .35s var(--ease);
+  }
+  .dock-item-label{
+    font-size:10.5px;
+    font-weight:500;
+    letter-spacing:.02em;
+  }
+  .dock-item.active{
+    color:var(--text-1);
+    background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.04));
+  }
+  .dock-item.active svg{transform:translateY(-1px) scale(1.05)}
+  .dock-item:not(.active):hover{color:var(--text-2)}
+
+  /* token 状态指示点（极小，右上角） */
+  .dock-item .dot{
+    position:absolute;
+    top:8px;right:10px;
+    width:5px;height:5px;
+    border-radius:50%;
+    background:transparent;
+    transition:background .3s var(--ease);
+  }
+  .dock-item .dot.ready{background:#5cd07b;box-shadow:0 0 6px rgba(92,208,123,.6)}
+  .dock-item .dot.loading{background:#d4b75c;animation:pulse 1.2s ease-in-out infinite}
+  .dock-item .dot.error{background:#d05c5c}
+  @keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+
+  @media (max-height:640px){
+    .brand{padding:2px 4px 12px}
+    .meta{padding:16px 20px 18px}
+    .meta-title{font-size:19px}
+    .meta-desc{font-size:12px;margin-top:6px}
+    .cover-glyph{width:32%;top:42%}
   }
 
-  /* ---------- Buttons ---------- */
-  .btn {
-    appearance: none;
-    background: linear-gradient(180deg, var(--ember), #b77527);
-    color: #1a0f04;
-    border: 1px solid #6b4112;
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 18px;
-    font-weight: 600;
-    letter-spacing: .04em;
-    padding: 12px 22px;
-    border-radius: 2px;
-    cursor: pointer;
-    transition: transform .1s, box-shadow .2s, filter .2s;
-    box-shadow: 0 4px 14px rgba(216,146,58,.25);
+  /* 每站独立配色 */
+  .cover.t-axiom{
+    background:
+      radial-gradient(120% 80% at 80% 10%,#3a4a4f 0%,transparent 50%),
+      radial-gradient(100% 100% at 0% 100%,#0d1a1c 0%,transparent 60%),
+      linear-gradient(160deg,#1a2528 0%,#0c1416 100%);
   }
-  .btn:hover:not(:disabled) { filter: brightness(1.08); }
-  .btn:active:not(:disabled) { transform: translateY(1px); }
-  .btn:disabled {
-    filter: grayscale(.6) brightness(.6);
-    cursor: not-allowed;
+  .cover.t-re0{
+    background:
+      radial-gradient(120% 80% at 80% 10%,#4a3a3a 0%,transparent 50%),
+      radial-gradient(100% 100% at 0% 100%,#1a0d0d 0%,transparent 60%),
+      linear-gradient(160deg,#281a1a 0%,#160c0c 100%);
   }
-  .btn.ghost {
-    background: transparent;
-    color: var(--vellum-dim);
-    border: 1px solid var(--rule);
-    box-shadow: none;
-    font-size: 14px;
-    padding: 8px 14px;
+  .cover.t-pic{
+    background:
+      radial-gradient(120% 80% at 80% 10%,#4f4a3a 0%,transparent 50%),
+      radial-gradient(100% 100% at 0% 100%,#1c180d 0%,transparent 60%),
+      linear-gradient(160deg,#28241a 0%,#16140c 100%);
   }
-  .btn.ghost:hover:not(:disabled) { color: var(--vellum); border-color: var(--vellum-muted); }
-
-  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-
-  /* ---------- Resume card ---------- */
-  .resume-card {
-    background: rgba(216,146,58,.06);
-    border: 1px solid rgba(216,146,58,.35);
-    border-radius: 2px;
-    padding: 18px 20px;
-    margin-bottom: 22px;
-    position: relative;
-  }
-  .resume-card h3 {
-    font-family: 'Cormorant Garamond', serif;
-    font-weight: 500;
-    font-size: 19px;
-    margin: 0 0 4px;
-    color: var(--ember-bright);
-  }
-  .resume-card .resume-meta {
-    font-size: 12.5px;
-    color: var(--vellum-muted);
-    margin-bottom: 12px;
-    font-family: 'JetBrains Mono', monospace;
-    letter-spacing: .04em;
-  }
-  .resume-card .resume-excerpt {
-    font-style: italic;
-    color: var(--vellum-dim);
-    font-size: 14px;
-    line-height: 1.6;
-    margin-bottom: 14px;
-    border-left: 2px solid var(--ember);
-    padding-left: 12px;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  /* ---------- Story view ---------- */
-  .scroll {
-    display: flex; flex-direction: column; gap: 36px;
-  }
-  .beat {
-    animation: fadeUp .8s ease both;
-  }
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  .beat-meta {
-    display: flex; align-items: center; gap: 10px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    letter-spacing: .28em;
-    text-transform: uppercase;
-    color: var(--vellum-muted);
-    margin-bottom: 14px;
-  }
-  .beat-meta .dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--ember);
-    box-shadow: 0 0 8px var(--ember);
-  }
-  .beat-meta.user .dot { background: var(--blood); box-shadow: 0 0 8px var(--blood); }
-  .beat-meta hr {
-    flex: 1;
-    border: none;
-    border-top: 1px dashed var(--rule);
-    margin: 0;
-  }
-
-  .narrative {
-    font-size: 18px;
-    line-height: 1.95;
-    color: var(--vellum);
-    white-space: pre-wrap;
-  }
-  .narrative p { margin: 0 0 1em; }
-  .narrative p:last-child { margin-bottom: 0; }
-  .narrative::first-letter {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 3.2em;
-    line-height: .9;
-    float: left;
-    padding: 6px 10px 0 0;
-    color: var(--ember);
-    font-weight: 500;
-  }
-  .beat:not(:first-child) .narrative::first-letter {
-    font-size: inherit; float: none; padding: 0; color: inherit; font-weight: inherit;
-  }
-
-  .player-action {
-    font-family: 'Cormorant Garamond', serif;
-    font-style: italic;
-    font-size: 18px;
-    color: var(--vellum-dim);
-    border-left: 2px solid var(--blood);
-    padding: 4px 0 4px 18px;
-    margin: 0;
-  }
-  .player-action::before {
-    content: '› ';
-    color: var(--blood);
-    font-style: normal;
-    font-weight: 600;
-  }
-
-  /* ---------- Choice cards ---------- */
-  .choices {
-    margin-top: 36px;
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  @media (min-width: 560px) {
-    .choices { grid-template-columns: 1fr 1fr; }
-  }
-
-  .choice {
-    appearance: none;
-    text-align: left;
-    background: var(--ink-2);
-    color: var(--vellum);
-    border: 1px solid var(--rule);
-    padding: 16px 18px 16px 46px;
-    font-family: 'Noto Serif SC', serif;
-    font-size: 15.5px;
-    line-height: 1.55;
-    cursor: pointer;
-    position: relative;
-    border-radius: 2px;
-    transition: all .18s ease;
-  }
-  .choice::before {
-    content: attr(data-key);
-    position: absolute;
-    left: 14px; top: 50%;
-    transform: translateY(-50%);
-    width: 22px; height: 22px;
-    border: 1px solid var(--ember);
-    color: var(--ember);
-    border-radius: 50%;
-    display: grid; place-items: center;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    transition: all .18s ease;
-  }
-  .choice:hover {
-    border-color: var(--ember);
-    background: rgba(216,146,58,.06);
-    transform: translateX(2px);
-  }
-  .choice:hover::before {
-    background: var(--ember);
-    color: var(--ink);
-  }
-  .choice:disabled { cursor: wait; opacity: .5; }
-
-  /* ---------- Free input ---------- */
-  .freeform {
-    margin-top: 18px;
-    border-top: 1px dashed var(--rule);
-    padding-top: 18px;
-  }
-  .freeform label {
-    display: block;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    letter-spacing: .28em;
-    text-transform: uppercase;
-    color: var(--vellum-muted);
-    margin-bottom: 8px;
-  }
-  .freeform .row { gap: 8px; }
-  .freeform input.text { flex: 1; min-width: 200px; }
-
-  /* ---------- Status / loading ---------- */
-  .status {
-    text-align: center;
-    font-family: 'Cormorant Garamond', serif;
-    font-style: italic;
-    color: var(--vellum-dim);
-    margin: 18px 0;
-    font-size: 16px;
-  }
-  .status .dots span {
-    display: inline-block;
-    animation: blink 1.4s infinite both;
-  }
-  .status .dots span:nth-child(2) { animation-delay: .2s; }
-  .status .dots span:nth-child(3) { animation-delay: .4s; }
-  @keyframes blink { 0%,80%,100%{opacity:.2} 40%{opacity:1} }
-
-  .error {
-    background: rgba(138,58,42,.12);
-    border: 1px solid var(--blood);
-    color: #f0c2b3;
-    padding: 12px 14px;
-    border-radius: 2px;
-    font-size: 14px;
-    margin: 16px 0;
-  }
-
-  .ending-stamp {
-    text-align: center;
-    margin-top: 40px;
-    font-family: 'Cormorant Garamond', serif;
-    font-style: italic;
-    font-size: 32px;
-    color: var(--ember);
-    letter-spacing: .3em;
-    opacity: 0;
-    animation: fadeUp 1.6s 0.4s ease both;
-  }
-  .ending-stamp::before, .ending-stamp::after {
-    content: ' · ';
-    color: var(--rule);
-  }
-
-  /* ---------- Toast ---------- */
-  .toast {
-    position: fixed;
-    left: 50%; bottom: 32px;
-    transform: translate(-50%, 20px);
-    background: rgba(20, 16, 12, 0.95);
-    color: var(--vellum);
-    padding: 11px 20px;
-    border-radius: 2px;
-    font-size: 13.5px;
-    border: 1px solid var(--ember);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity .25s ease, transform .25s ease;
-    z-index: 1000;
-    max-width: 90vw;
-    text-align: center;
-    font-family: 'Noto Serif SC', serif;
-  }
-  .toast.show { opacity: 1; transform: translate(-50%, 0); }
-
-  /* ---------- Footer ---------- */
-  footer {
-    text-align: center;
-    margin-top: 60px;
-    color: var(--vellum-muted);
-    font-size: 12px;
-    font-family: 'JetBrains Mono', monospace;
-    letter-spacing: .15em;
-  }
-  footer a { color: var(--ember); text-decoration: none; }
-  footer a:hover { text-decoration: underline; }
-
-  .hidden { display: none !important; }
-
-  .action-row {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-    flex-wrap: wrap;
-    margin-top: 40px;
+  .cover.t-lantern{
+    background:
+      radial-gradient(120% 80% at 80% 10%,#5a3f28 0%,transparent 50%),
+      radial-gradient(100% 100% at 0% 100%,#1c120a 0%,transparent 60%),
+      linear-gradient(160deg,#2a1d12 0%,#16100a 100%);
   }
 </style>
 </head>
 <body>
-<main class="stage">
 
-  <header class="masthead">
-    <div class="ornament">A Text Adventure</div>
-    <h1 class="title">提<span class="amp">灯</span>人</h1>
-    <p class="tagline">A lantern in the dark — your story begins where you choose.</p>
-  </header>
+<div class="app">
 
-  <!-- ===================== SETUP ===================== -->
-  <section id="setup" class="panel">
-    <div id="resumeCard" class="resume-card hidden">
-      <h3>未完的故事还亮着光</h3>
-      <div class="resume-meta" id="resumeMeta"></div>
-      <div class="resume-excerpt" id="resumeExcerpt"></div>
-      <div class="row">
-        <button id="resumeBtn" class="btn" style="font-size:15px;padding:9px 18px;">继续</button>
-        <button id="discardBtn" class="btn ghost">丢弃，开始新故事</button>
-      </div>
-    </div>
+  <div class="brand">
+    <div class="brand-name">sunisalex · <span>navigator</span></div>
+    <div class="brand-time" id="time"></div>
+  </div>
 
-    <h2>开启一段新的旅程</h2>
-    <p class="hint">
-      由 DeepSeek V4 Pro 即兴讲述。你可以选择题材、留下一句灵感，或者什么都不写、让命运自己抽签。
-    </p>
+  <div class="stage">
+    <div class="slides" id="slides"></div>
+    <div class="toast" id="toast"></div>
+  </div>
 
-    <div class="field">
-      <label class="field-label">题材（可选）</label>
-      <div class="genre-chips" id="chips">
-        <button type="button" class="chip" data-g="">随机</button>
-        <button type="button" class="chip" data-g="蒸汽朋克悬疑">蒸汽朋克</button>
-        <button type="button" class="chip" data-g="赛博朋克">赛博朋克</button>
-        <button type="button" class="chip" data-g="克苏鲁神话">克苏鲁</button>
-        <button type="button" class="chip" data-g="武侠">武侠</button>
-        <button type="button" class="chip" data-g="末日废土">废土</button>
-        <button type="button" class="chip" data-g="维多利亚悬疑">维多利亚</button>
-        <button type="button" class="chip" data-g="太空歌剧">太空歌剧</button>
-        <button type="button" class="chip" data-g="北欧神话">北欧神话</button>
-      </div>
-    </div>
+  <nav class="dock" id="dock"></nav>
 
-    <div class="field">
-      <label class="field-label">灵感种子（可选）</label>
-      <input id="seed" class="text" type="text" maxlength="200"
-        placeholder="例如：一只会说话的乌鸦、一封迟到了三十年的信、地下铁的最后一班车……" />
-    </div>
-
-    <div class="row" style="margin-top: 18px;">
-      <button id="startBtn" class="btn">点亮提灯 ✦</button>
-      <span id="setupStatus" class="status" style="margin: 0;"></span>
-    </div>
-    <div id="setupError" class="error hidden"></div>
-  </section>
-
-  <!-- ===================== GAME ===================== -->
-  <section id="game" class="hidden">
-    <div id="scroll" class="scroll"></div>
-
-    <div id="loading" class="status hidden">
-      笔尖正在润墨<span class="dots"><span>.</span><span>.</span><span>.</span></span>
-    </div>
-
-    <div id="gameError" class="error hidden"></div>
-
-    <div id="endingStamp" class="ending-stamp hidden">F I N</div>
-
-    <div id="choicesWrap" class="hidden">
-      <div id="choices" class="choices"></div>
-
-      <div class="freeform">
-        <label>……或者，写下你想做的事</label>
-        <div class="row">
-          <input id="freeInput" class="text" type="text" maxlength="200"
-            placeholder="例如：我假装认识他，伸手拥抱过去" />
-          <button id="freeBtn" class="btn ghost" style="font-size:14px;padding:9px 16px;">提交</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="action-row">
-      <button id="shareBtn" class="btn ghost" title="生成可分享的链接（不会泄露你的 API Key）">
-        ⤴ 分享当前进度
-      </button>
-      <button id="restartBtn" class="btn ghost">↺ 重新开始一段新故事</button>
-    </div>
-  </section>
-
-  <div id="toast" class="toast"></div>
-
-  <footer>
-    POWERED&nbsp;BY&nbsp;DEEPSEEK&nbsp;V4&nbsp;PRO &nbsp;·&nbsp; HOSTED&nbsp;ON&nbsp;EDGEONE&nbsp;PAGES
-  </footer>
-</main>
+</div>
 
 <script>
-(() => {
-  // ============================================================
-  // DOM
-  // ============================================================
-  const $ = (id) => document.getElementById(id);
-  const setupEl     = $('setup');
-  const gameEl      = $('game');
-  const scrollEl    = $('scroll');
-  const loadingEl   = $('loading');
-  const choicesWrap = $('choicesWrap');
-  const choicesEl   = $('choices');
-  const freeInput   = $('freeInput');
-  const freeBtn     = $('freeBtn');
-  const startBtn    = $('startBtn');
-  const restartBtn  = $('restartBtn');
-  const shareBtn    = $('shareBtn');
-  const setupStatus = $('setupStatus');
-  const setupError  = $('setupError');
-  const gameError   = $('gameError');
-  const endingStamp = $('endingStamp');
-  const seedInput   = $('seed');
-  const resumeCard  = $('resumeCard');
-  const resumeMeta  = $('resumeMeta');
-  const resumeExcerpt = $('resumeExcerpt');
-  const resumeBtn   = $('resumeBtn');
-  const discardBtn  = $('discardBtn');
-  const toastEl     = $('toast');
+/* =========================================================
+ * 站点配置
+ *   sub   : 子域名前缀，用于：
+ *           - 拼 API URL: https://{sub}.sunisalex.org/api/url?subdomain={sub}
+ *           - 作为本地缓存 key
+ *           - 兜底跳转 https://{sub}.sunisalex.org
+ * ========================================================= */
+const SITES = [
+  {
+    key:'axiom',
+    theme:'t-axiom',
+    name:'Axiom Lab',
+    sub:'axiom',
+    tag:'LABORATORY',
+    desc:'公理实验室 · 数理化 / 刷机 / 编程 / AI',
+    glyph:`<svg viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="6" fill="rgba(255,255,255,.92)"/>
+      <ellipse cx="50" cy="50" rx="40" ry="16"/>
+      <ellipse cx="50" cy="50" rx="40" ry="16" transform="rotate(60 50 50)"/>
+      <ellipse cx="50" cy="50" rx="40" ry="16" transform="rotate(120 50 50)"/>
+    </svg>`,
+    icon:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><ellipse cx="12" cy="12" rx="10" ry="4"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(120 12 12)"/></svg>`
+  },
+  {
+    key:'re0',
+    theme:'t-re0',
+    name:'Re:0 Web',
+    sub:'re0-web',
+    tag:'FORK',
+    desc:'Re:0 Web 项目 fork',
+    glyph:`<svg viewBox="0 0 100 100">
+      <path d="M20 50a30 30 0 0 1 52-20"/>
+      <path d="M72 18v14h-14"/>
+      <path d="M80 50a30 30 0 0 1-52 20"/>
+      <path d="M28 82v-14h14"/>
+    </svg>`,
+    icon:`<svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5.3L20 5"/><path d="M20 5v4h-4"/><path d="M20 12a8 8 0 0 1-14 5.3L4 19"/><path d="M4 19v-4h4"/></svg>`
+  },
+  {
+    key:'pic',
+    theme:'t-pic',
+    name:'Picture',
+    sub:'picture',
+    tag:'GALLERY',
+    desc:'EdgeOne Pages 图库',
+    glyph:`<svg viewBox="0 0 100 100">
+      <rect x="15" y="20" width="70" height="60" rx="6"/>
+      <circle cx="35" cy="40" r="6"/>
+      <path d="M15 70l20-18 14 12 10-8 26 24"/>
+    </svg>`,
+    icon:`<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="M3 17l5-4 4 3 3-2 6 5"/></svg>`
+  },
+  {
+    key:'lantern',
+    theme:'t-lantern',
+    name:'Lantern',
+    sub:'lantern',
+    tag:'TEXT ADVENTURE',
+    desc:'提灯人 · AI 即兴讲述的中文文字冒险',
+    glyph:`<svg viewBox="0 0 100 100">
+      <!-- 提灯人剪影：左侧人形，右侧高举灯笼 -->
+      <!-- 头 -->
+      <circle cx="36" cy="22" r="6"/>
+      <!-- 躯干 -->
+      <path d="M36 28v22"/>
+      <!-- 两腿 -->
+      <path d="M36 50l-8 24"/>
+      <path d="M36 50l8 24"/>
+      <!-- 持灯的手臂（向右上抬起） -->
+      <path d="M36 34l18 -6"/>
+      <!-- 灯笼悬挂的短链 -->
+      <path d="M54 28v6"/>
+      <!-- 灯笼顶盖与提手 -->
+      <path d="M48 34h12"/>
+      <path d="M50 34c0 -3 8 -3 8 0"/>
+      <!-- 灯笼主体 -->
+      <path d="M48 34v18a6 6 0 0 0 6 6 6 6 0 0 0 6 -6V34"/>
+      <!-- 灯笼底部尾穗 -->
+      <path d="M54 58v4"/>
+      <!-- 灯笼内火光（实心暖色） -->
+      <circle cx="54" cy="44" r="2.6" fill="rgba(255,210,140,.95)" stroke="none"/>
+      <!-- 光晕（虚线圈） -->
+      <circle cx="54" cy="44" r="13" stroke="rgba(255,210,140,.4)" stroke-dasharray="2 3"/>
+    </svg>`,
+    icon:`<svg viewBox="0 0 24 24"><path d="M12 3v3"/><path d="M9 6h6"/><path d="M10 6c0-1.5 4-1.5 4 0"/><path d="M9 6v9a3 3 0 0 0 3 3 3 3 0 0 0 3 -3V6"/><path d="M12 18v2"/><circle cx="12" cy="11.5" r="1.4" fill="currentColor" stroke="none"/></svg>`
+  }
+];
 
-  // ============================================================
-  // Persistence layer — localStorage (private) + URL fragment (shareable)
-  //
-  // Two layers, two purposes:
-  //   - localStorage : silent auto-save so refreshes / closing the tab don't
-  //                    lose progress. Only visible to this browser.
-  //   - URL fragment : the share button. Fragment, not query, so story
-  //                    content never hits the server or any CDN access log,
-  //                    and isn't truncated by EdgeOne's query-length limits.
-  //
-  // We use LZ-String's compressToEncodedURIComponent — already URL-safe, and
-  // it compresses repetitive Chinese dialogue history to ~30-40% of original,
-  // which buys us ~3x more shareable turns vs. plain base64.
-  // ============================================================
-  const SAVE_KEY     = 'lantern.save.v1';
-  const SAVE_VERSION = 1;
-  // Conservative shareable-URL size budget for the encoded fragment payload.
-  // ~6000 chars leaves plenty of room below the practical 8000-char URL ceiling
-  // once the origin + path + "#s=" prefix is included.
-  const SHARE_MAX_LEN = 6000;
+/* =========================================================
+ * Token 缓存与预加载
+ *
+ * 重要：EO token 的有效期从 API 返回的 timestamp（秒级 unix 时间）开始算，
+ *      官方文档为 3 小时。我们以 token 自身 timestamp 为基准判断过期，
+ *      而不是本地"拿到 token 的时刻"——后者会被多层缓存（CF/EO KV/CDN）
+ *      误导，导致本地误以为 token 还很新鲜，实际已临近过期。
+ *
+ *      本地侧再留 1 小时安全余量（视为 2 小时过期），避免临界点跳转后立即 401。
+ * ========================================================= */
+const TOKEN_LIFETIME_MS = 1000 * 60 * 60 * 3;   // EO token 实际有效期 3h
+const TOKEN_SAFETY_MS   = 1000 * 60 * 60 * 1;   // 安全余量 1h（本地视为 2h 过期）
+const CACHE_KEY_PREFIX  = 'eo_token_v2:';        // 版本号 +1，废弃旧版本缓存
+const FETCH_TIMEOUT_MS  = 5000;
 
-  // ============================================================
-  // Game state
-  // ============================================================
-  let storyState   = null;
-  let lastChoices  = [];
-  let storyEnded   = false;
-  let busy         = false;
-  let selectedGenre = '';
+// 内存中的 token 池：sub -> { token, timestamp, domain, status }
+const tokenPool = {};
 
-  function buildSave() {
-    if (!storyState) return null;
+function cacheKey(sub){ return CACHE_KEY_PREFIX + sub; }
+
+/* token 是否过期：以 API 返回的 timestamp（秒）为基准 */
+function isExpired(timestamp){
+  if(!timestamp) return true;
+  const ageMs = Date.now() - (timestamp * 1000);
+  return ageMs > (TOKEN_LIFETIME_MS - TOKEN_SAFETY_MS);
+}
+
+function loadFromLocal(sub){
+  try{
+    const raw = localStorage.getItem(cacheKey(sub));
+    if(!raw) return null;
+    const data = JSON.parse(raw);
+    if(!data || !data.token || !data.timestamp) return null;
+    if(isExpired(data.timestamp)){
+      // 顺手清理过期项
+      localStorage.removeItem(cacheKey(sub));
+      return null;
+    }
+    return data;
+  } catch(e){ return null; }
+}
+
+function saveToLocal(sub,data){
+  try{ localStorage.setItem(cacheKey(sub),JSON.stringify(data)); } catch(e){}
+}
+
+async function fetchToken(site){
+  // 每个站点请求自己的 API：https://{sub}.sunisalex.org/api/url?subdomain={sub}
+  const apiUrl = `https://${site.sub}.sunisalex.org/api/url?subdomain=${encodeURIComponent(site.sub)}`;
+  const ctrl = new AbortController();
+  const tid  = setTimeout(()=>ctrl.abort(),FETCH_TIMEOUT_MS);
+  try{
+    const res = await fetch(apiUrl,{signal:ctrl.signal,cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    if(!data.token || !data.domain || !data.timestamp) throw new Error('响应字段缺失');
+    // 防御：即使 API 返回了，也可能是命中了远端 KV 的旧 token，再核一次有效期
+    if(isExpired(data.timestamp)) throw new Error('API 返回的 token 已临近过期');
     return {
-      v: SAVE_VERSION,
-      savedAt: Date.now(),
-      state: storyState,
-      lastChoices: lastChoices,
-      ended: storyEnded,
+      token:     data.token,
+      timestamp: data.timestamp,
+      domain:    data.domain
     };
+  } finally { clearTimeout(tid); }
+}
+
+/* 加载某站 token（优先本地缓存）；返回 Promise，并维护 tokenPool 状态用于 UI 反馈 */
+async function loadSiteToken(site){
+  // 1. 先看本地缓存
+  const cached = loadFromLocal(site.sub);
+  if(cached){
+    tokenPool[site.sub] = {...cached,status:'ready'};
+    updateDotForSub(site.sub,'ready');
+    return cached;
   }
 
-  function saveLocal() {
-    if (!storyState) return;
-    try {
-      localStorage.setItem(SAVE_KEY, JSON.stringify(buildSave()));
-    } catch (e) {
-      // Storage may be disabled (private mode) or full. Non-fatal.
-      console.warn('[save] localStorage write failed:', e);
-    }
-  }
+  // 2. 标记 loading
+  tokenPool[site.sub] = {status:'loading'};
+  updateDotForSub(site.sub,'loading');
 
-  function loadLocal() {
-    try {
-      const raw = localStorage.getItem(SAVE_KEY);
-      if (!raw) return null;
-      const save = JSON.parse(raw);
-      if (!save || save.v !== SAVE_VERSION || !save.state) return null;
-      return save;
-    } catch (e) {
-      return null;
-    }
+  // 3. 远程拉
+  try{
+    const data = await fetchToken(site);
+    saveToLocal(site.sub,data);
+    tokenPool[site.sub] = {...data,status:'ready'};
+    updateDotForSub(site.sub,'ready');
+    return data;
+  } catch(err){
+    console.warn('[token] '+site.sub+':',err.message);
+    tokenPool[site.sub] = {status:'error',error:err.message};
+    updateDotForSub(site.sub,'error');
+    return null;
   }
+}
 
-  function clearLocal() {
-    try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
-  }
-
-  // ----- URL fragment encoding -----
-  function encodeShare(save) {
-    if (typeof LZString === 'undefined') return null;
-    try {
-      return LZString.compressToEncodedURIComponent(JSON.stringify(save));
-    } catch (e) {
-      console.warn('[share] encode failed:', e);
-      return null;
-    }
-  }
-
-  function decodeShare(encoded) {
-    if (typeof LZString === 'undefined') return null;
-    try {
-      const json = LZString.decompressFromEncodedURIComponent(encoded);
-      if (!json) return null;
-      const save = JSON.parse(json);
-      if (!save || save.v !== SAVE_VERSION || !save.state) return null;
-      return save;
-    } catch (e) {
-      console.warn('[share] decode failed:', e);
-      return null;
-    }
-  }
-
-  function tryParseUrlFragment() {
-    const hash = window.location.hash || '';
-    const m = hash.match(/[#&]s=([^&]+)/);
-    if (!m) return null;
-    return decodeShare(m[1]);
-  }
-
-  function clearUrlFragment() {
-    // Strip the long fragment from the address bar after we've loaded it.
-    if (window.location.hash) {
-      const url = window.location.pathname + window.location.search;
-      history.replaceState(null, '', url);
-    }
-  }
-
-  // ============================================================
-  // Genre chips
-  // ============================================================
-  document.querySelectorAll('#chips .chip').forEach((c) => {
-    c.addEventListener('click', () => {
-      document.querySelectorAll('#chips .chip').forEach(x => x.classList.remove('on'));
-      c.classList.add('on');
-      selectedGenre = c.dataset.g || '';
-    });
+/* 页面打开时并发预加载所有站点的 token */
+function preloadAllTokens(){
+  SITES.forEach(site=>{
+    loadSiteToken(site);  // fire & forget
   });
+}
 
-  // ============================================================
-  // UI helpers
-  // ============================================================
-  function showSetupError(msg) {
-    setupError.textContent = msg;
-    setupError.classList.remove('hidden');
-  }
-  function clearSetupError() {
-    setupError.classList.add('hidden');
-    setupError.textContent = '';
-  }
-  function showGameError(msg) {
-    gameError.textContent = msg;
-    gameError.classList.remove('hidden');
-  }
-  function clearGameError() {
-    gameError.classList.add('hidden');
-    gameError.textContent = '';
-  }
+/* =========================================================
+ * UI 渲染
+ * ========================================================= */
+const slidesEl = document.getElementById('slides');
+const dockEl   = document.getElementById('dock');
+const toastEl  = document.getElementById('toast');
 
-  let toastTimer = null;
-  function toast(msg, duration = 2500) {
-    toastEl.textContent = msg;
-    toastEl.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastEl.classList.remove('show'), duration);
-  }
+let currentIdx = 0;
+let toastTimer = null;
 
-  function setBusy(b) {
-    busy = b;
-    if (b) {
-      loadingEl.classList.remove('hidden');
-      choicesWrap.classList.add('hidden');
-    } else {
-      loadingEl.classList.add('hidden');
-    }
-    document.querySelectorAll('#choices .choice').forEach(c => c.disabled = b);
-    freeBtn.disabled = b;
-    freeInput.disabled = b;
-    shareBtn.disabled = b;
-  }
+SITES.forEach((s,i)=>{
+  // slide
+  const slide = document.createElement('div');
+  slide.className = 'slide' + (i===0?' active':'');
+  slide.dataset.idx = i;
 
-  function appendBeat({ kind, text, opening = false }) {
-    const beat = document.createElement('article');
-    beat.className = 'beat';
+  const cover = document.createElement('div');
+  cover.className = 'cover ' + s.theme;
+  cover.innerHTML = `
+    <div class="cover-grid"></div>
+    <div class="cover-orbit"></div>
+    <div class="cover-shine"></div>
+    <div class="cover-glyph">${s.glyph}</div>
+    <div class="cover-noise"></div>
+    <div class="cover-vignette"></div>
+  `;
 
-    const meta = document.createElement('div');
-    meta.className = 'beat-meta ' + (kind === 'user' ? 'user' : 'narrator');
-    const label = kind === 'user' ? '你的行动' : (opening ? '楔子' : '续章');
-    meta.innerHTML = `<span class="dot"></span><span>${label}</span><hr/>`;
-    beat.appendChild(meta);
+  const btn = document.createElement('button');
+  btn.className = 'open-btn';
+  btn.innerHTML = `打开 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>`;
+  btn.addEventListener('click',e=>{e.stopPropagation();openSite(s,btn)});
+  cover.addEventListener('click',()=>openSite(s,btn));
 
-    if (kind === 'user') {
-      const p = document.createElement('p');
-      p.className = 'player-action';
-      p.textContent = text;
-      beat.appendChild(p);
-    } else {
-      const body = document.createElement('div');
-      body.className = 'narrative';
-      const paras = text.split(/\n{2,}/);
-      paras.forEach((para) => {
-        const p = document.createElement('p');
-        p.textContent = para.trim();
-        body.appendChild(p);
-      });
-      beat.appendChild(body);
-    }
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  meta.innerHTML = `
+    <div class="meta-tag">${s.tag}</div>
+    <div class="meta-title">${s.name}</div>
+    <div class="meta-domain">${s.sub}.sunisalex.org</div>
+    <div class="meta-desc">${s.desc}</div>
+  `;
 
-    scrollEl.appendChild(beat);
-    return beat;
-  }
+  slide.appendChild(cover);
+  slide.appendChild(btn);
+  slide.appendChild(meta);
+  slidesEl.appendChild(slide);
 
-  function renderChoices(choices) {
-    choicesEl.innerHTML = '';
-    if (!choices || !choices.length) {
-      choicesWrap.classList.add('hidden');
-      return;
-    }
-    choices.forEach((text, i) => {
-      const b = document.createElement('button');
-      b.className = 'choice';
-      b.type = 'button';
-      b.dataset.key = String.fromCharCode(65 + i);
-      b.textContent = text;
-      b.addEventListener('click', () => submitAction(text));
-      choicesEl.appendChild(b);
-    });
-    freeInput.value = '';
-    choicesWrap.classList.remove('hidden');
-  }
+  // dock
+  const b = document.createElement('button');
+  b.className = 'dock-item' + (i===0?' active':'');
+  b.dataset.idx = i;
+  b.dataset.sub = s.sub;
+  b.innerHTML = `
+    ${s.icon}
+    <span class="dock-item-label">${s.name}</span>
+    <span class="dot"></span>
+  `;
+  b.addEventListener('click',()=>switchTo(i));
+  dockEl.appendChild(b);
+});
 
-  function showEnding() {
-    storyEnded = true;
-    endingStamp.classList.remove('hidden');
-    choicesWrap.classList.add('hidden');
+function updateDotForSub(sub,status){
+  const item = dockEl.querySelector(`.dock-item[data-sub="${sub}"]`);
+  if(!item) return;
+  const dot = item.querySelector('.dot');
+  dot.classList.remove('ready','loading','error');
+  if(status) dot.classList.add(status);
+}
+
+function switchTo(idx){
+  if(idx===currentIdx) return;
+  document.querySelectorAll('.slide').forEach((el,i)=>el.classList.toggle('active',i===idx));
+  document.querySelectorAll('.dock-item').forEach((el,i)=>el.classList.toggle('active',i===idx));
+  currentIdx = idx;
+}
+
+/* =========================================================
+ * 打开站点：优先用预加载好的 token；没有就当场拉
+ * ========================================================= */
+async function openSite(site,btn){
+  const fallbackUrl = `https://${site.sub}.sunisalex.org`;
+  const pooled = tokenPool[site.sub];
+
+  // 情况 1：缓存就绪 且 未过期，直接拼 URL 并打开
+  if(pooled && pooled.status==='ready' && pooled.token && !isExpired(pooled.timestamp)){
+    const u = buildTokenUrl(pooled);
+    window.open(u,'_blank','noopener,noreferrer');
+    return;
   }
 
-  // ============================================================
-  // API
-  // ============================================================
-  async function postJSON(url, payload) {
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    let data;
-    try { data = await resp.json(); }
-    catch { throw new Error('服务器返回了非 JSON 响应（HTTP ' + resp.status + '）'); }
-    if (!resp.ok || !data.ok) {
-      throw new Error(data?.error || ('请求失败，HTTP ' + resp.status));
-    }
-    return data.data;
+  // 情况 2：没有 / 加载中 / 失败 / 已过期 → 当场重新拉一次
+  btn.classList.add('is-loading');
+  const originalHTML = btn.innerHTML;
+  btn.innerHTML = `<span class="spin"></span> 获取中`;
+
+  // 强制走远程：先清掉内存和本地的过期 token
+  if(pooled && pooled.timestamp && isExpired(pooled.timestamp)){
+    delete tokenPool[site.sub];
+    try{ localStorage.removeItem(cacheKey(site.sub)); } catch(e){}
   }
 
-  async function startStory() {
-    clearSetupError();
-    startBtn.disabled = true;
-    setupStatus.innerHTML = '提灯正在点亮<span class="dots"><span>.</span><span>.</span><span>.</span></span>';
-    try {
-      const seed = seedInput.value.trim();
-      const data = await postJSON('/api/start', { genre: selectedGenre, seed });
-
-      enterGameView();
-      scrollEl.innerHTML = '';
-
-      storyState  = data.state;
-      lastChoices = data.choices || [];
-      storyEnded  = false;
-
-      const beat = appendBeat({ kind: 'narrator', text: data.opening, opening: true });
-      requestAnimationFrame(() => beat.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-      renderChoices(lastChoices);
-
-      saveLocal();
-    } catch (err) {
-      showSetupError(err.message || String(err));
-    } finally {
-      startBtn.disabled = false;
-      setupStatus.textContent = '';
-    }
+  try{
+    const data = await loadSiteToken(site);
+    if(!data) throw new Error('token 获取失败');
+    const u = buildTokenUrl(data);
+    window.open(u,'_blank','noopener,noreferrer');
+  } catch(err){
+    console.warn('[open]',err);
+    window.open(fallbackUrl,'_blank','noopener,noreferrer');
+    toast('token 获取失败，已用海外域名打开');
+  } finally {
+    btn.classList.remove('is-loading');
+    btn.innerHTML = originalHTML;
   }
+}
 
-  async function submitAction(action) {
-    if (busy || !storyState) return;
-    const text = String(action || '').trim();
-    if (!text) return;
+function buildTokenUrl({token,timestamp,domain}){
+  const u = new URL('https://'+domain);
+  u.searchParams.set('eo_token',token);
+  u.searchParams.set('eo_time', timestamp);
+  return u.toString();
+}
 
-    clearGameError();
-    const userBeat = appendBeat({ kind: 'user', text });
-    requestAnimationFrame(() => userBeat.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-    setBusy(true);
+/* =========================================================
+ * 周边
+ * ========================================================= */
+function toast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>toastEl.classList.remove('show'),2200);
+}
 
-    try {
-      const data = await postJSON('/api/continue', {
-        state: storyState,
-        action: text,
-      });
-      storyState  = data.state;
-      lastChoices = data.choices || [];
+function tick(){
+  const d = new Date();
+  const p = n => String(n).padStart(2,'0');
+  document.getElementById('time').textContent = `${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+tick(); setInterval(tick,30000);
 
-      const narratorBeat = appendBeat({ kind: 'narrator', text: data.narrative });
-      requestAnimationFrame(() => narratorBeat.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight') switchTo((currentIdx+1)%SITES.length);
+  if(e.key==='ArrowLeft')  switchTo((currentIdx-1+SITES.length)%SITES.length);
+});
 
-      if (data.ended) {
-        showEnding();
-      } else {
-        renderChoices(lastChoices);
-      }
-
-      saveLocal();
-    } catch (err) {
-      showGameError(err.message || String(err));
-      // Re-show previous choices so the user can retry instead of being stuck.
-      if (lastChoices.length) renderChoices(lastChoices);
-      else choicesWrap.classList.remove('hidden');
-    } finally {
-      setBusy(false);
-    }
+let touchX=null;
+document.querySelector('.stage').addEventListener('touchstart',e=>{touchX=e.touches[0].clientX},{passive:true});
+document.querySelector('.stage').addEventListener('touchend',e=>{
+  if(touchX===null) return;
+  const dx = e.changedTouches[0].clientX - touchX;
+  if(Math.abs(dx)>50){
+    if(dx<0) switchTo((currentIdx+1)%SITES.length);
+    else     switchTo((currentIdx-1+SITES.length)%SITES.length);
   }
+  touchX=null;
+},{passive:true});
 
-  // ============================================================
-  // Resume / restart
-  // ============================================================
-  function enterGameView() {
-    setupEl.classList.add('hidden');
-    gameEl.classList.remove('hidden');
-    endingStamp.classList.add('hidden');
-    storyEnded = false;
-  }
+/* 页面打开立刻预加载所有 token */
+preloadAllTokens();
 
-  function rebuildStoryFromState(state) {
-    scrollEl.innerHTML = '';
-    const history = Array.isArray(state.history) ? state.history : [];
-    history.forEach((beat, idx) => {
-      if (beat.role === 'assistant') {
-        appendBeat({ kind: 'narrator', text: beat.text, opening: idx === 0 });
-      } else if (beat.role === 'user') {
-        appendBeat({ kind: 'user', text: beat.text });
-      }
-      // 'system' notes (history-elision markers) are skipped in the UI.
-    });
-  }
-
-  function loadSave(save, { fromShare = false } = {}) {
-    storyState  = save.state;
-    lastChoices = save.lastChoices || [];
-    storyEnded  = !!save.ended;
-
-    enterGameView();
-    rebuildStoryFromState(storyState);
-
-    if (storyEnded) {
-      showEnding();
-    } else {
-      renderChoices(lastChoices);
-    }
-
-    // Always re-save locally — a shared link becomes the recipient's own save.
-    saveLocal();
-
-    requestAnimationFrame(() => {
-      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-    });
-
-    if (fromShare) {
-      toast('已载入分享的故事进度');
-      clearUrlFragment();
-    }
-  }
-
-  function showResumeCard(save) {
-    const history = save.state?.history || [];
-    const turns = history.filter(b => b.role === 'user').length;
-    const title = save.state?.title || '无名故事';
-    const genre = save.state?.genre || '';
-    const lastAssistant = [...history].reverse().find(b => b.role === 'assistant');
-    const excerpt = lastAssistant ? lastAssistant.text.replace(/\n+/g, ' ') : '';
-
-    const when = new Date(save.savedAt || Date.now());
-    const whenStr = `${when.getMonth() + 1}月${when.getDate()}日 ${String(when.getHours()).padStart(2,'0')}:${String(when.getMinutes()).padStart(2,'0')}`;
-
-    resumeMeta.textContent = `${title}${genre ? ' · ' + genre : ''} · 已进行 ${turns} 个回合 · ${whenStr}`;
-    resumeExcerpt.textContent = excerpt;
-    resumeCard.classList.remove('hidden');
-  }
-
-  resumeBtn.addEventListener('click', () => {
-    const save = loadLocal();
-    if (!save) {
-      resumeCard.classList.add('hidden');
-      return;
-    }
-    loadSave(save);
-  });
-
-  discardBtn.addEventListener('click', () => {
-    if (!confirm('确认丢弃当前存档？这一段故事将无法再找回。')) return;
-    clearLocal();
-    resumeCard.classList.add('hidden');
-  });
-
-  function restart() {
-    // Don't auto-wipe the save here. The new story will overwrite it as
-    // it progresses; if the player abandons mid-setup, the old save remains.
-    storyState   = null;
-    lastChoices  = [];
-    storyEnded   = false;
-    scrollEl.innerHTML = '';
-    choicesEl.innerHTML = '';
-    endingStamp.classList.add('hidden');
-    choicesWrap.classList.add('hidden');
-    gameEl.classList.add('hidden');
-    setupEl.classList.remove('hidden');
-    clearGameError();
-    clearSetupError();
-    const save = loadLocal();
-    if (save) showResumeCard(save);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  // ============================================================
-  // Share
-  // ============================================================
-  async function shareProgress() {
-    if (!storyState) return;
-    const encoded = encodeShare(buildSave());
-
-    if (!encoded) {
-      toast('生成分享链接失败，请重试');
-      return;
-    }
-
-    if (encoded.length > SHARE_MAX_LEN) {
-      toast('故事太长，无法直接分享。建议玩到结局或截图分享。', 4000);
-      return;
-    }
-
-    const url = `${window.location.origin}${window.location.pathname}#s=${encoded}`;
-
-    // Prefer native share sheet on mobile; fall back to clipboard.
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `提灯人 · ${storyState.title || '一段未完的故事'}`,
-          text: '在这盏灯下，我留了一段故事给你——',
-          url,
-        });
-        return;
-      } catch (e) {
-        if (e?.name === 'AbortError') return;
-        // Otherwise fall through to clipboard.
-      }
-    }
-
-    try {
-      await navigator.clipboard.writeText(url);
-      toast(`链接已复制（${encoded.length.toLocaleString()} 字符）`);
-    } catch (e) {
-      prompt('复制下面的链接分享给朋友：', url);
-    }
-  }
-
-  // ============================================================
-  // Wire up
-  // ============================================================
-  startBtn.addEventListener('click', startStory);
-  restartBtn.addEventListener('click', restart);
-  shareBtn.addEventListener('click', shareProgress);
-  freeBtn.addEventListener('click', () => {
-    const v = freeInput.value.trim();
-    if (v) submitAction(v);
-  });
-  freeInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.isComposing) {
-      e.preventDefault();
-      freeBtn.click();
+/* 标签页重新可见时（用户切回来），若 token 过期则自动刷新 */
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='visible') return;
+  SITES.forEach(site=>{
+    const pooled = tokenPool[site.sub];
+    // 内存里没有 / 上次失败 / token 自身已临近过期 → 重拉
+    if(!pooled || pooled.status==='error' || isExpired(pooled.timestamp)){
+      loadSiteToken(site);
     }
   });
-  document.addEventListener('keydown', (e) => {
-    if (busy || gameEl.classList.contains('hidden')) return;
-    if (document.activeElement === freeInput) return;
-    const k = e.key.toUpperCase();
-    if (['A','B','C','D'].includes(k)) {
-      const idx = k.charCodeAt(0) - 65;
-      const buttons = choicesEl.querySelectorAll('.choice');
-      if (buttons[idx]) {
-        e.preventDefault();
-        buttons[idx].click();
-      }
-    }
-  });
-
-  // ============================================================
-  // Boot
-  //   1. URL fragment (shared link) wins — overrides local save
-  //   2. localStorage  → show resume card; user decides
-  //   3. Otherwise: fresh start
-  // ============================================================
-  (function boot() {
-    const shared = tryParseUrlFragment();
-    if (shared) {
-      loadSave(shared, { fromShare: true });
-      return;
-    }
-    const local = loadLocal();
-    if (local) {
-      showResumeCard(local);
-    }
-  })();
-
-})();
+});
 </script>
+
 </body>
 </html>
